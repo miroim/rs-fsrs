@@ -2,6 +2,9 @@
 mod algo;
 pub use algo::FSRS;
 
+mod alea;
+pub use alea::Alea;
+
 mod scheduler;
 pub use scheduler::{ImplScheduler, Scheduler};
 

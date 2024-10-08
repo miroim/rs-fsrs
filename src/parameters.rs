@@ -1,3 +1,4 @@
+use crate::Alea;
 use crate::Rating;
 
 type Weights = [f64; 19];
@@ -14,6 +15,8 @@ pub struct Parameters {
     pub decay: f64,
     pub factor: f64,
     pub enable_short_term: bool,
+    pub enable_fuzz: bool,
+    pub seed: Option<String>,
 }
 
 impl Parameters {
@@ -92,6 +95,15 @@ impl Parameters {
     fn mean_reversion(&self, initial: f64, current: f64) -> f64 {
         self.w[7].mul_add(initial, (1.0 - self.w[7]) * current)
     }
+
+    fn apply_fuzz(&self, interval: f64, elapsed_days: i64) -> f64 {
+        if self.enable_fuzz || interval < 2.5 {
+            interval
+        }
+
+        let generator = Alea::new(self.seed);
+        generator
+    }
 }
 
 impl Default for Parameters {
@@ -103,6 +115,8 @@ impl Default for Parameters {
             decay: Self::DECAY,
             factor: Self::FACTOR,
             enable_short_term: true,
+            enable_fuzz: false,
+            seed: None,
         }
     }
 }
