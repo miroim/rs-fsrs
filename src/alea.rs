@@ -14,7 +14,7 @@ pub struct Alea {
 }
 
 impl Alea {
-    pub fn new(seed: Option<u64>) -> Self {
+    pub fn new(seed: Option<String>) -> Self {
         let mut mash = Mash::new();
         let mut alea = Alea {
             c: 1.0,
@@ -23,7 +23,7 @@ impl Alea {
             s2: mash.mash(" "),
         };
 
-        let seed = seed.unwrap_or_else(|| Utc::now().nanosecond() as u64);
+        let seed = seed.unwrap_or_else(|| Utc::now().nanosecond().to_string());
 
         alea.s0 -= mash.mash(&seed.to_string());
         if alea.s0 < 0.0 {
@@ -42,6 +42,7 @@ impl Alea {
     }
 
     fn next(&mut self) -> f64 {
+        // 2.3283064365386963e-10: 2^-32
         let t = 2091639.0 * self.s0 + self.c * 2.3283064365386963e-10;
         self.s0 = self.s1;
         self.s1 = self.s2;
@@ -67,12 +68,14 @@ impl Alea {
     }
 }
 
+const INV_32: u64 = 0x100000000; // 2^32
+const INV_21: u32 = 0x200000; // 2^21
+
 struct Mash {
     n: u32,
 }
 
 impl Mash {
-    const INV_32: u32 = 0x100000000;
     fn new() -> Self {
         Mash { n: 0xefc8249d }
     }
@@ -86,8 +89,45 @@ impl Mash {
             h *= self.n as f64;
             self.n = h as u32;
             h -= self.n as f64;
-            self.n = self.n.wrapping_add((h * Self::INV_32 as f64) as u32);
+            self.n = self.n.wrapping_add((h * INV_32 as f64) as u32);
         }
-        (self.n as f64) * 2.3283064365386963e-10
+        (self.n as f64) * 2.3283064365386963e-10 // 2^-32
     }
+}
+
+pub struct Prng {
+    xg: Alea,
+}
+
+impl Prng {
+    fn new(seed: Option<String>) -> Self {
+        Prng {
+            xg: Alea::new(seed),
+        }
+    }
+
+    fn next(&mut self) -> f64 {
+        self.xg.next()
+    }
+
+    fn int32(&mut self) -> i32 {
+        (self.next() * INV_32 as f64) as i32
+    }
+
+    pub fn double(&mut self) -> f64 {
+        // 1.1102230246251565e-16: 2^-53
+        self.next() + ((self.next() * INV_21 as f64) as u32 as f64) * 1.1102230246251565e-16
+    }
+
+    fn get_state(&self) -> AleaState {
+        self.xg.get_state()
+    }
+
+    fn import_state(&mut self, state: AleaState) {
+        self.xg.set_state(state);
+    }
+}
+
+pub fn alea(seed: Option<String>) -> Prng {
+    Prng::new(seed)
 }

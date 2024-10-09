@@ -1,4 +1,6 @@
-use crate::Alea;
+use core::f64;
+
+use crate::alea;
 use crate::Rating;
 
 type Weights = [f64; 19];
@@ -7,7 +9,7 @@ const DEFAULT_WEIGHTS: Weights = [
     2.0225, 0.0904, 0.3025, 2.1214, 0.2498, 2.9466, 0.4891, 0.6468,
 ];
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Parameters {
     pub request_retention: f64,
     pub maximum_interval: i32,
@@ -40,10 +42,12 @@ impl Parameters {
     }
 
     #[allow(clippy::suboptimal_flops)]
-    pub fn next_interval(&self, stability: f64) -> i64 {
-        let new_interval =
-            stability / Self::FACTOR * (self.request_retention.powf(1.0 / Self::DECAY) - 1.0);
-        (new_interval.round() as i64).clamp(1, self.maximum_interval as i64)
+    pub fn next_interval(&self, stability: f64, elapsed_days: i64) -> i64 {
+        let new_interval = ((stability / Self::FACTOR
+            * (self.request_retention.powf(1.0 / Self::DECAY) - 1.0))
+            .round() as i64)
+            .clamp(1, self.maximum_interval as i64);
+        self.apply_fuzz(new_interval, elapsed_days)
     }
 
     pub fn next_difficulty(&self, difficulty: f64, rating: Rating) -> f64 {
@@ -96,13 +100,17 @@ impl Parameters {
         self.w[7].mul_add(initial, (1.0 - self.w[7]) * current)
     }
 
-    fn apply_fuzz(&self, interval: f64, elapsed_days: i64) -> f64 {
-        if self.enable_fuzz || interval < 2.5 {
-            interval
+    fn apply_fuzz(&self, interval: i64, elapsed_days: i64) -> i64 {
+        if self.enable_fuzz || interval < 3 {
+            return interval;
         }
 
-        let generator = Alea::new(self.seed);
-        generator
+        let mut generator = alea(self.seed.clone());
+        let fuzz_factor = generator.double();
+        let (min_interval, max_interval) =
+            FuzzRange::get_fuzz_range(interval, elapsed_days, self.maximum_interval);
+
+        fuzz_factor as i64 * (max_interval - min_interval + 1) + min_interval
     }
 }
 
@@ -120,3 +128,64 @@ impl Default for Parameters {
         }
     }
 }
+
+struct FuzzRange {
+    start: f64,
+    end: f64,
+    factor: f64,
+}
+
+impl FuzzRange {
+    const fn new(start: f64, end: f64, factor: f64) -> Self {
+        Self { start, end, factor }
+    }
+
+    fn get_fuzz_range(interval: i64, elapsed_days: i64, maximum_interval: i32) -> (i64, i64) {
+        let mut delta: f64 = 1.0;
+        for fuzz_range in FUZZ_RANGE {
+            delta += fuzz_range.factor
+                * f64::max(
+                    f64::min(interval as f64, fuzz_range.end) - fuzz_range.start,
+                    0.0,
+                );
+        }
+
+        let i = f64::min(interval as f64, maximum_interval as f64);
+        let mut min_interval = f64::max(2.0, f64::round(i - delta));
+        let max_interval: f64 = f64::min(f64::round(i + delta), maximum_interval as f64);
+
+        if i > elapsed_days as f64 {
+            min_interval = f64::max(min_interval, elapsed_days as f64 + 1.0);
+        }
+
+        min_interval = f64::min(min_interval, max_interval);
+
+        (min_interval as i64, max_interval as i64)
+    }
+}
+const FUZZ_RANGE: [FuzzRange; 3] = [
+    FuzzRange::new(2.5, 7.0, 0.15),
+    FuzzRange::new(7.0, 20.0, 0.1),
+    FuzzRange::new(20.0, f64::MAX, 0.05),
+];
+
+// func getFuzzRange(interval, elapsedDays, maximumInterval float64) (minIvl, maxIvl int) {
+// 	delta := 1.0
+// 	for _, r := range FUZZ_RANGES {
+// 		delta += r.Factor * math.Max(math.Min(interval, r.End)-r.Start, 0.0)
+// 	}
+
+// 	interval = math.Min(interval, maximumInterval)
+// 	minIvlFloat := math.Max(2, math.Round(interval-delta))
+// 	maxIvlFloat := math.Min(math.Round(interval+delta), maximumInterval)
+
+// 	if interval > elapsedDays {
+// 		minIvlFloat = math.Max(minIvlFloat, elapsedDays+1)
+// 	}
+// 	minIvlFloat = math.Min(minIvlFloat, maxIvlFloat)
+
+// 	minIvl = int(minIvlFloat)
+// 	maxIvl = int(maxIvlFloat)
+
+// 	return minIvl, maxIvl
+// }
