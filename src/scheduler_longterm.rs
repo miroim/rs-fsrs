@@ -39,6 +39,7 @@ impl LongtermScheduler {
             &mut next_hard,
             &mut next_good,
             &mut next_easy,
+            0,
         );
         self.next_state(
             &mut next_again,
@@ -88,6 +89,7 @@ impl LongtermScheduler {
             &mut next_hard,
             &mut next_good,
             &mut next_easy,
+            interval,
         );
         self.next_state(
             &mut next_again,
@@ -169,14 +171,24 @@ impl LongtermScheduler {
         next_hard: &mut Card,
         next_good: &mut Card,
         next_easy: &mut Card,
+        elapsed_days: i64,
     ) {
         let mut again_interval = self
             .scheduler
             .parameters
-            .next_interval(next_again.stability);
-        let mut hard_interval = self.scheduler.parameters.next_interval(next_hard.stability);
-        let mut good_interval = self.scheduler.parameters.next_interval(next_good.stability);
-        let mut easy_interval = self.scheduler.parameters.next_interval(next_easy.stability);
+            .next_interval(next_again.stability, elapsed_days);
+        let mut hard_interval = self
+            .scheduler
+            .parameters
+            .next_interval(next_hard.stability, elapsed_days);
+        let mut good_interval = self
+            .scheduler
+            .parameters
+            .next_interval(next_good.stability, elapsed_days);
+        let mut easy_interval = self
+            .scheduler
+            .parameters
+            .next_interval(next_easy.stability, elapsed_days);
 
         again_interval = again_interval.min(hard_interval);
         hard_interval = hard_interval.max(again_interval + 1);

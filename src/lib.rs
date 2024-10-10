@@ -3,7 +3,7 @@ mod algo;
 pub use algo::FSRS;
 
 mod alea;
-pub use alea::{alea, Alea, Prng};
+pub use alea::{alea, AleaState, Prng};
 
 mod scheduler;
 pub use scheduler::{ImplScheduler, Scheduler};

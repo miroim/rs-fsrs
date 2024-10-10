@@ -1,6 +1,7 @@
 #[cfg(test)]
 use {
     crate::{
+        alea::{alea, AleaState},
         algo::FSRS,
         models::{Card, Rating, State},
         parameters::Parameters,
@@ -169,4 +170,88 @@ fn test_long_term_scheduler() {
     assert_eq!(interval_history, expected_interval);
     assert_eq!(stability_history, expected_stability);
     assert_eq!(difficulty_history, expected_difficulty);
+}
+
+#[test]
+fn test_prng_get_state() {
+    let prng_1 = alea(Some(1.to_string()));
+    let prng_2 = alea(Some(3.to_string()));
+    let prng_3 = alea(Some(1.to_string()));
+
+    let alea_state_1 = prng_1.get_state();
+    let alea_state_2 = prng_2.get_state();
+    let alea_state_3 = prng_3.get_state();
+
+    assert_eq!(alea_state_1, alea_state_3);
+    assert_ne!(alea_state_1, alea_state_2);
+}
+
+#[test]
+fn test_prng_next() {
+    let seed = 12345;
+    let mut generator = alea(Some(seed.to_string()));
+    assert_eq!(generator.next(), 0.27138191112317145);
+    assert_eq!(generator.next(), 0.19615925149992108);
+    assert_eq!(generator.next(), 0.6810678059700876);
+}
+
+#[test]
+fn test_prng_i32() {
+    let seed = 12345;
+    let mut generator = alea(Some(seed.to_string()));
+    assert_eq!(generator.int32(), 1165576433);
+    assert_eq!(generator.int32(), 842497570);
+    assert_eq!(generator.int32(), -1369803343);
+}
+
+#[test]
+fn test_seed_example_1() {
+    let seed = "1727015666066";
+    let mut generator = alea(Some(seed.to_string()));
+    let results = generator.next();
+    let state = generator.get_state();
+
+    let expect_alea_state = AleaState {
+        c: 1828249.0,
+        s0: 0.5888567129150033,
+        s1: 0.5074866858776659,
+        s2: 0.6320083506871015,
+    };
+    assert_eq!(results, 0.6320083506871015);
+    assert_eq!(state, expect_alea_state);
+}
+
+#[test]
+fn test_seed_example_2() {
+    let seed = "Seedp5fxh9kf4r0";
+    let mut generator = alea(Some(seed.to_string()));
+    // println!("{:?}", generator.xg);
+    let results = generator.next();
+    let state = generator.get_state();
+
+    let expect_alea_state = AleaState {
+        c: 1776946.0,
+        s0: 0.6778371171094477,
+        s1: 0.0770602801349014,
+        s2: 0.14867847645655274,
+    };
+    assert_eq!(results, 0.14867847645655274);
+    assert_eq!(state, expect_alea_state);
+}
+
+#[test]
+fn test_seed_example_3() {
+    let seed = "NegativeS2Seed";
+    let mut generator = alea(Some(seed.to_string()));
+    let results = generator.next();
+    let state = generator.get_state();
+
+    let expect_alea_state = AleaState {
+        c: 952982.0,
+        s0: 0.25224833423271775,
+        s1: 0.9213257452938706,
+        s2: 0.830770346801728,
+    };
+    assert_eq!(results, 0.830770346801728);
+    assert_eq!(state, expect_alea_state);
 }
