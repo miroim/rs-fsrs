@@ -17,5 +17,4 @@ mod models;
 pub use models::{Card, Rating, RecordLog, ReviewLog, SchedulingInfo, State};
 
 mod parameters;
-pub use crate::parameters::{Parameters, Seed};
-mod tests;
+pub use parameters::{Parameters, Seed};

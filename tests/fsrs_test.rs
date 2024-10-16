@@ -1,12 +1,9 @@
+pub mod utils;
+
 #[cfg(test)]
 use {
-    crate::{
-        alea::{alea, AleaState},
-        algo::FSRS,
-        models::{Card, Rating, State},
-        parameters::{Parameters, Seed},
-    },
-    chrono::{DateTime, Duration, TimeZone, Utc},
+    chrono::Duration,
+    fsrs::{alea, AleaState, Card, Parameters, Rating, Seed, State, FSRS},
     rand::Rng,
 };
 
@@ -33,18 +30,6 @@ static WEIGHTS: [f64; 19] = [
     2.0225, 0.0904, 0.3025, 2.1214, 0.2498, 2.9466, 0.4891, 0.6468,
 ];
 
-#[cfg(test)]
-fn string_to_utc(date_string: &str) -> DateTime<Utc> {
-    let datetime = DateTime::parse_from_str(date_string, "%Y-%m-%d %H:%M:%S %z %Z").unwrap();
-    Utc.from_local_datetime(&datetime.naive_utc()).unwrap()
-}
-
-#[cfg(test)]
-fn round_float(num: f64, precision: i32) -> f64 {
-    let multiplier = 10.0_f64.powi(precision);
-    (num * multiplier).round() / multiplier
-}
-
 #[test]
 fn test_basic_scheduler_interval() {
     let params = Parameters {
@@ -54,7 +39,7 @@ fn test_basic_scheduler_interval() {
 
     let fsrs = FSRS::new(params);
     let mut card = Card::new();
-    let mut now = string_to_utc("2022-11-29 12:30:00 +0000 UTC");
+    let mut now = utils::string_to_utc("2022-11-29 12:30:00 +0000 UTC");
     let mut interval_history = vec![];
 
     for rating in TEST_RATINGS.iter() {
@@ -76,7 +61,7 @@ fn test_basic_scheduler_state() {
 
     let fsrs = FSRS::new(params);
     let mut card = Card::new();
-    let mut now = string_to_utc("2022-11-29 12:30:00 +0000 UTC");
+    let mut now = utils::string_to_utc("2022-11-29 12:30:00 +0000 UTC");
     let mut state_list: Vec<State> = vec![];
     let mut scheduling_card = fsrs.repeat(card, now);
 
@@ -104,7 +89,7 @@ fn test_basic_scheduler_memo_state() {
 
     let fsrs = FSRS::new(params);
     let mut card = Card::new();
-    let mut now = string_to_utc("2022-11-29 12:30:00 +0000 UTC");
+    let mut now = utils::string_to_utc("2022-11-29 12:30:00 +0000 UTC");
     let mut scheduling_card = fsrs.repeat(card.clone(), now);
     let ratings = [
         Rating::Again,
@@ -122,8 +107,8 @@ fn test_basic_scheduler_memo_state() {
     }
 
     card = scheduling_card.get(&Rating::Good).unwrap().to_owned().card;
-    assert_eq!(round_float(card.stability, 4), 71.4554);
-    assert_eq!(round_float(card.difficulty, 4), 5.0976);
+    assert_eq!(utils::round_float(card.stability, 4), 71.4554);
+    assert_eq!(utils::round_float(card.difficulty, 4), 5.0976);
 }
 
 #[test]
@@ -136,7 +121,7 @@ fn test_long_term_scheduler() {
 
     let fsrs = FSRS::new(params);
     let mut card = Card::new();
-    let mut now = string_to_utc("2022-11-29 12:30:00 +0000 UTC");
+    let mut now = utils::string_to_utc("2022-11-29 12:30:00 +0000 UTC");
     let mut interval_history = vec![];
     let mut stability_history = vec![];
     let mut difficulty_history = vec![];
@@ -153,8 +138,8 @@ fn test_long_term_scheduler() {
 
         card = record.card;
         interval_history.push(card.scheduled_days);
-        stability_history.push(round_float(card.stability, 4));
-        difficulty_history.push(round_float(card.difficulty, 4));
+        stability_history.push(utils::round_float(card.stability, 4));
+        difficulty_history.push(utils::round_float(card.difficulty, 4));
         now = card.due;
     }
 
