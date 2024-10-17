@@ -17,4 +17,4 @@ mod models;
 pub use models::{Card, Rating, RecordLog, ReviewLog, SchedulingInfo, State};
 
 mod parameters;
-pub use parameters::{Parameters, Seed};
+pub use parameters::{FuzzRange, Parameters, Seed};

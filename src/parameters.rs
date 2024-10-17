@@ -134,7 +134,7 @@ impl Default for Parameters {
     }
 }
 
-struct FuzzRange {
+pub struct FuzzRange {
     start: f64,
     end: f64,
     factor: f64,
@@ -145,7 +145,7 @@ impl FuzzRange {
         Self { start, end, factor }
     }
 
-    fn get_fuzz_range(interval: f64, elapsed_days: i64, maximum_interval: i32) -> (i64, i64) {
+    pub fn get_fuzz_range(interval: f64, elapsed_days: i64, maximum_interval: i32) -> (i64, i64) {
         let mut delta: f64 = 1.0;
         for fuzz_range in FUZZ_RANGE {
             delta += fuzz_range.factor
